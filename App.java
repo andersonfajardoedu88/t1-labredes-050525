@@ -19,9 +19,11 @@ public class App {
         System.out.println("Digite comandos:");
         while (true) {
             String cmd = sc.nextLine();
-            if (cmd.equals("heartbeat")) {
+            if (cmd.equalsIgnoreCase("heartbeat")) {
                 node.sendHeartbeat();
                 System.out.println("Heartbeat enviado.");
+            } else if (cmd.equalsIgnoreCase("devices")) {
+                node.listarDispositivos();
             }
         }
     }
