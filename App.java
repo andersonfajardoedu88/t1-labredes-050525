@@ -24,6 +24,15 @@ public class App {
                 System.out.println("Heartbeat enviado.");
             } else if (cmd.equalsIgnoreCase("devices")) {
                 node.listarDispositivos();
+            } else if (cmd.startsWith("talk ")) {
+                String[] partes = cmd.split(" ", 3);
+                if (partes.length < 3) {
+                    System.out.println("Uso: talk <nome> <mensagem>");
+                } else {
+                    String nome = partes[1];
+                    String mensagem = partes[2];
+                    node.enviarMensagemPara(nome, mensagem);
+                }
             }
         }
     }
