@@ -2,8 +2,8 @@ import java.util.Scanner;
 
 public class App {
     public static void main(String[] args) throws Exception {
-        Comunicador node = new Comunicador("Device1", 5555);
-        //Comunicador node = new Comunicador("Device2", 5555);
+        //Comunicador node = new Comunicador("Device1", 5555);
+        Comunicador node = new Comunicador("Device2", 5556);
         
         new Thread(() -> {
             while (true) {
