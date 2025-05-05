@@ -41,6 +41,7 @@ public class App {
                     String nome = partes[1];
                     String caminho = partes[2];
                     node.enviarArquivoPara(nome, caminho);
+                }
             }
         }
     }

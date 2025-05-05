@@ -9,6 +9,9 @@ public class Comunicador {
     int port;
     String name;
     Map<String, Dispositivo> dispositivosAtivos = new ConcurrentHashMap<>();
+    
+    // Mapa para arquivos em recepção
+    Map<String, ArquivoRecebido> arquivosEmRecepcao = new ConcurrentHashMap<>();
 
     public Comunicador(String name, int port) throws Exception {
         this.name = name;
@@ -26,6 +29,13 @@ public class Comunicador {
                 } catch (InterruptedException ignored) {}
             }
         }).start();
+    }
+
+    class ArquivoRecebido {
+        String nome;
+        int tamanho;
+        Map<Integer, byte[]> blocos = new TreeMap<>();
+        long recebidoTotal = 0;
     }
 
     public void sendHeartbeat() throws Exception {
@@ -150,7 +160,7 @@ public class Comunicador {
     enviarMensagem(destino, msgEnd);
 
     System.out.println("Arquivo enviado. Aguardando ACK...");
-    
+
     }
 
     private void enviarMensagem(Dispositivo destino, String mensagem) throws IOException {
