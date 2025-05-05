@@ -33,6 +33,14 @@ public class App {
                     String mensagem = partes[2];
                     node.enviarMensagemPara(nome, mensagem);
                 }
+            }else if (cmd.startsWith("sendfile ")) {
+                String[] partes = cmd.split(" ", 3);
+                if (partes.length < 3) {
+                    System.out.println("Uso: sendfile <nome> <caminho-do-arquivo>");
+                } else {
+                    String nome = partes[1];
+                    String caminho = partes[2];
+                    node.enviarArquivoPara(nome, caminho);
             }
         }
     }
