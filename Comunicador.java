@@ -55,6 +55,13 @@ public class Comunicador {
                 packet.getPort(),
                 System.currentTimeMillis()
             ));
+        } else if ("TALK".equalsIgnoreCase(tipo)) {
+            String[] partes = conteudo.split(" ", 2);
+            if (partes.length == 2) {
+                String id = partes[0];
+                String msgRecebida = partes[1];
+                System.out.println("[Mensagem recebida] " + msgRecebida + " (ID: " + id + ")");
+            }
         }
 
         System.out.println("Recebido de " + packet.getAddress().getHostAddress() + ": " + msg);
@@ -70,5 +77,24 @@ public class Comunicador {
         });
         System.out.println();
     }
+
+    public void enviarMensagemPara(String nomeDestino, String mensagem) throws Exception {
+        Dispositivo destino = dispositivosAtivos.get(nomeDestino);
+        if (destino == null) {
+            System.out.println("Dispositivo \"" + nomeDestino + "\" não encontrado.");
+            return;
+        }
+    
+        // Gera um ID simples baseado no tempo
+        String id = String.valueOf(System.currentTimeMillis());
+        String mensagemCompleta = "TALK " + id + " " + mensagem;
+    
+        byte[] dados = mensagemCompleta.getBytes();
+        DatagramPacket packet = new DatagramPacket(
+            dados, dados.length, destino.address, destino.port);
+        socket.send(packet);
+    
+        System.out.println("Mensagem enviada para " + nomeDestino + ": " + mensagem);
+    }    
 
 }
