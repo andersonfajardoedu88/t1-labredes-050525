@@ -9,6 +9,7 @@ public class Comunicador {
         this.name = name;
         this.port = port;
         this.socket = new DatagramSocket(port);
+        this.socket.setBroadcast(true);
     }
 
     public void sendHeartbeat() throws Exception {
@@ -26,6 +27,7 @@ public class Comunicador {
         socket.receive(packet);
 
         String msg = new String(packet.getData(), 0, packet.getLength());
-        System.out.println("Recebido: " + msg);
+        String sender = packet.getAddress().getHostAddress() + ":" + packet.getPort();
+        System.out.println("Recebido de " + sender + ": " + msg);
     }
 }
