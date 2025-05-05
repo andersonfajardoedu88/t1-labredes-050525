@@ -6,7 +6,7 @@ public class Dispositivo {
     int port;
     long lastHeartbeat;
 
-    public Device(String name, InetAddress address, int port, long lastHeartbeat) {
+    public Dispositivo(String name, InetAddress address, int port, long lastHeartbeat) {
         this.name = name;
         this.address = address;
         this.port = port;

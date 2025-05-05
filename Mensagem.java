@@ -1,9 +1,9 @@
-public class Menssagem {
+public class Mensagem {
     String type;
     String id;
     String content;
 
-    public Message(String type, String id, String content) {
+    public Mensagem(String type, String id, String content) {
         this.type = type;
         this.id = id;
         this.content = content;
