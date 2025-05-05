@@ -67,12 +67,78 @@ public class Comunicador {
                 packet.getPort(),
                 System.currentTimeMillis()
             ));
-        } else if ("TALK".equalsIgnoreCase(tipo)) {
+        }else if ("TALK".equalsIgnoreCase(tipo)) {
             String[] partes = conteudo.split(" ", 2);
             if (partes.length == 2) {
                 String id = partes[0];
                 String msgRecebida = partes[1];
                 System.out.println("[Mensagem recebida] " + msgRecebida + " (ID: " + id + ")");
+            }
+        }else if ("FILE".equalsIgnoreCase(tipo)) {
+            String[] partes = conteudo.split(" ", 3);
+            if (partes.length == 3) {
+                String id = partes[0];
+                String nomeArquivo = partes[1];
+                int tamanho = Integer.parseInt(partes[2]);
+        
+                ArquivoRecebido arq = new ArquivoRecebido();
+                arq.nome = nomeArquivo;
+                arq.tamanho = tamanho;
+                arquivosEmRecepcao.put(id, arq);
+        
+                System.out.println("Preparado para receber arquivo: " + nomeArquivo + " (" + tamanho + " bytes)");
+                String ackMsg = "ACK " + id;
+                enviarMensagem(new Dispositivo("", packet.getAddress(), packet.getPort(), 0), ackMsg);
+            }
+        }else if ("CHUNK".equalsIgnoreCase(tipo)) {
+            String[] partes = conteudo.split(" ", 3);
+            if (partes.length == 3) {
+                String id = partes[0];
+                int seq = Integer.parseInt(partes[1]);
+                String dadosBase64 = partes[2];
+        
+                ArquivoRecebido arq = arquivosEmRecepcao.get(id);
+                if (arq != null) {
+                    byte[] dados = Base64.getDecoder().decode(dadosBase64);
+                    arq.blocos.put(seq, dados);
+                    arq.recebidoTotal += dados.length;
+                    System.out.println("Recebido bloco " + seq + " do arquivo " + arq.nome);
+                    String ackMsg = "ACK " + id + "-" + seq;
+                    enviarMensagem(new Dispositivo("", packet.getAddress(), packet.getPort(), 0), ackMsg);
+                }
+            }
+        }else if ("END".equalsIgnoreCase(tipo)) {
+            String[] partes = conteudo.split(" ", 2);
+            if (partes.length == 2) {
+                String id = partes[0];
+                String hashEsperado = partes[1];
+        
+                ArquivoRecebido arq = arquivosEmRecepcao.get(id);
+                if (arq != null) {
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    for (byte[] bloco : arq.blocos.values()) {
+                        out.write(bloco);
+                    }
+        
+                    byte[] dadosCompletos = out.toByteArray();
+                    String hashCalculado = calcularHashSHA256(dadosCompletos);
+        
+                    if (hashEsperado.equals(hashCalculado)) {
+                        System.out.println("Arquivo " + arq.nome + " recebido com sucesso. Salvando...");
+                        FileOutputStream fos = new FileOutputStream("recebido_" + arq.nome);
+                        fos.write(dadosCompletos);
+                        fos.close();
+                        System.out.println("Arquivo salvo como: recebido_" + arq.nome);
+                        String ackMsg = "ACK " + id + "-end";
+                        enviarMensagem(new Dispositivo("", packet.getAddress(), packet.getPort(), 0), ackMsg);
+                    } else {
+                        System.out.println("Hash inválido. Arquivo corrompido!");
+                        String nackMsg = "NACK " + id + "-end Arquivo corrompido (hash diferente)";
+                        enviarMensagem(new Dispositivo("", packet.getAddress(), packet.getPort(), 0), nackMsg);
+                    }
+        
+                    arquivosEmRecepcao.remove(id);
+                }
             }
         }
 
