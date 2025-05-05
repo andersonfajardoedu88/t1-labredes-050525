@@ -3,7 +3,6 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.io.*;
 import java.security.MessageDigest;
-import java.util.Base64;
 
 public class Comunicador {
     DatagramSocket socket;
@@ -99,5 +98,76 @@ public class Comunicador {
     
         System.out.println("Mensagem enviada para " + nomeDestino + ": " + mensagem);
     }    
+
+    public void enviarArquivoPara(String nomeDestino, String caminhoArquivo) throws Exception {
+    Dispositivo destino = dispositivosAtivos.get(nomeDestino);
+    if (destino == null) {
+        System.out.println("Dispositivo \"" + nomeDestino + "\" não encontrado.");
+        return;
+    }
+
+    File arquivo = new File(caminhoArquivo);
+    if (!arquivo.exists()) {
+        System.out.println("Arquivo \"" + caminhoArquivo + "\" não encontrado.");
+        return;
+    }
+
+    String id = String.valueOf(System.currentTimeMillis());
+    long tamanho = arquivo.length();
+    String nomeArquivo = arquivo.getName();
+    String msgFile = "FILE " + id + " " + nomeArquivo + " " + tamanho;
+
+    // Envia mensagem FILE
+    enviarMensagem(destino, msgFile);
+    System.out.println("Iniciando envio do arquivo: " + nomeArquivo);
+
+    // Envia CHUNKs (partes do arquivo)
+    FileInputStream in = new FileInputStream(arquivo);
+    byte[] buffer = new byte[512]; // bloco de 512 bytes
+    int bytesRead;
+    int seq = 0;
+    ByteArrayOutputStream totalBytes = new ByteArrayOutputStream();
+
+    while ((bytesRead = in.read(buffer)) != -1) {
+        byte[] chunk = Arrays.copyOf(buffer, bytesRead);
+        totalBytes.write(chunk);
+
+        String dadosBase64 = Base64.getEncoder().encodeToString(chunk);
+        String msgChunk = "CHUNK " + id + " " + seq + " " + dadosBase64;
+        enviarMensagem(destino, msgChunk);
+        System.out.println("Enviado bloco " + seq);
+        seq++;
+
+        Thread.sleep(100); // pequeno atraso para evitar congestionamento
+    }
+
+    in.close();
+
+    // Calcula hash SHA-256
+    byte[] fileBytes = totalBytes.toByteArray();
+    String hash = calcularHashSHA256(fileBytes);
+    String msgEnd = "END " + id + " " + hash;
+    enviarMensagem(destino, msgEnd);
+
+    System.out.println("Arquivo enviado. Aguardando ACK...");
+    
+    }
+
+    private void enviarMensagem(Dispositivo destino, String mensagem) throws IOException {
+        byte[] dados = mensagem.getBytes();
+        DatagramPacket packet = new DatagramPacket(
+            dados, dados.length, destino.address, destino.port);
+        socket.send(packet);
+    }
+
+    private String calcularHashSHA256(byte[] dados) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hashBytes = digest.digest(dados);
+        StringBuilder sb = new StringBuilder();
+        for (byte b : hashBytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+    }
 
 }
