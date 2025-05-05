@@ -1,6 +1,9 @@
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.io.*;
+import java.security.MessageDigest;
+import java.util.Base64;
 
 public class Comunicador {
     DatagramSocket socket;
