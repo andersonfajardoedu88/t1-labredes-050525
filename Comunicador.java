@@ -23,9 +23,9 @@ public class Comunicador {
         new Thread(() -> {
             while (true) {
                 long agora = System.currentTimeMillis();
-                dispositivosAtivos.values().removeIf(d -> agora - d.lastHeartbeat > 10000);
+                //dispositivosAtivos.values().removeIf(d -> agora - d.lastHeartbeat > 50000);
                 try {
-                    Thread.sleep(5000); // limpa a lista a cada 5 segundos
+                    Thread.sleep(50000); // limpa a lista a cada 5 segundos
                 } catch (InterruptedException ignored) {}
             }
         }).start();
@@ -98,14 +98,32 @@ public class Comunicador {
                 String dadosBase64 = partes[2];
         
                 ArquivoRecebido arq = arquivosEmRecepcao.get(id);
-                if (arq != null) {
+                /*if (arq != null) {
                     byte[] dados = Base64.getDecoder().decode(dadosBase64);
                     arq.blocos.put(seq, dados);
                     arq.recebidoTotal += dados.length;
                     System.out.println("Recebido bloco " + seq + " do arquivo " + arq.nome);
                     String ackMsg = "ACK " + id + "-" + seq;
                     enviarMensagem(new Dispositivo("", packet.getAddress(), packet.getPort(), 0), ackMsg);
+                }*/
+                if (arq == null) {
+                    System.out.println("CHUNK ignorado: ID " + id + " não encontrado.");
+                    return;
                 }
+        
+                if (arq.blocos.containsKey(seq)) {
+                    System.out.println("Bloco duplicado ignorado: " + seq);
+                    return;
+                }
+
+                byte[] dados = Base64.getDecoder().decode(dadosBase64);
+                arq.blocos.put(seq, dados);
+                arq.recebidoTotal += dados.length;
+        
+                System.out.println("Recebido bloco " + seq + " do arquivo " + arq.nome);
+        
+                String ackMsg = "ACK " + id + "-" + seq;
+                enviarMensagem(new Dispositivo("", packet.getAddress(), packet.getPort(), 0), ackMsg);
             }
         }else if ("END".equalsIgnoreCase(tipo)) {
             String[] partes = conteudo.split(" ", 2);
@@ -114,11 +132,21 @@ public class Comunicador {
                 String hashEsperado = partes[1];
         
                 ArquivoRecebido arq = arquivosEmRecepcao.get(id);
-                if (arq != null) {
-                    ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    for (byte[] bloco : arq.blocos.values()) {
-                        out.write(bloco);
-                    }
+                
+                if (arq == null) {
+                    System.out.println("END ignorado: ID " + id + " não encontrado.");
+                    return;
+                }
+        
+                if (arq.blocos.isEmpty()) {
+                    System.out.println("Erro: nenhum bloco recebido para o arquivo " + arq.nome);
+                    return;
+                }
+        
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                for (byte[] bloco : arq.blocos.values()) {
+                    out.write(bloco);
+                }
         
                     byte[] dadosCompletos = out.toByteArray();
                     String hashCalculado = calcularHashSHA256(dadosCompletos);
@@ -138,7 +166,6 @@ public class Comunicador {
                     }
         
                     arquivosEmRecepcao.remove(id);
-                }
             }
         }
 
